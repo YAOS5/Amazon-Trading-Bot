@@ -5,11 +5,8 @@ import os
 
 
 def create_directories(symbol):
-    if not os.path.exists('./data'):
-            os.mkdir('./data')
-
     if not os.path.exists(f'./data/{symbol}'):
-        os.mkdir(f'./data/{symbol}')
+            os.makedirs(f'./data/{symbol}')
 
 def get_data(symbol, interval, n_months):
     
