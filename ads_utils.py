@@ -39,35 +39,52 @@ def plot(prices, positions=[], portfolio_values=[], title='', filename=''):
         filename         - string filename, plot will be saved if a non-empty value is given
     '''
     portfolio_values = list(portfolio_values)
-    prices_colour, portfolio_colour, buy_colour, sell_colour = 'C0', 'C1', 'C2', 'C3'
+    positions = list(positions)
+    prices_colour, portfolio_colour, buy_colour, sell_colour = 'C0', 'C1', '#49E20E', '#FF0000'
     
     fig, ax1 = plt.subplots(figsize=(18, 9))
     ax2 = ax1.twinx()
+    ax1.set_zorder(ax2.get_zorder()+1)
+    ax1.patch.set_visible(False)
     ax1.spines['top'].set_color('none')
     ax2.spines['top'].set_color('none')
     
-    # Plot
+    # Plot positions
+    if positions:
+        buy_indexes  = np.where(np.diff(positions) ==  1)[0]
+        sell_indexes = np.where(np.diff(positions) == -1)[0]
+        buys  = np.take(prices, buy_indexes, 0)
+        sells = np.take(prices, sell_indexes, 0)
+        
+        ax1.scatter(buy_indexes,  buys,  zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='^',
+                    label='Buy',  c=buy_colour)
+        ax1.scatter(sell_indexes, sells, zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='v',
+                    label='Sell', c=sell_colour)
+        ax1.legend(frameon=False, fontsize=SMALL, loc='upper left')
+    
+    # Plot prices and portfolio values
     ax1.plot(prices, lw=LW, c=prices_colour)
     if portfolio_values:
         ax2.plot(portfolio_values, lw=LW, c=portfolio_colour)
     
     # Label
     ax1.set_title(title, fontsize=LARGE)
+    ax1.set_xlabel('Index', fontsize=LARGE)
     ax1.set_ylabel('Stock Price ($)', fontsize=MED, c=prices_colour)
     ax1.tick_params(axis='y', labelcolor=prices_colour)
    
     if portfolio_values:
-        ax2.set_ylabel('Portfolio Value ($)', fontsize=MED, c=portfolio_colour, rotation=270)
+        ax2.set_ylabel('Portfolio Value ($)', fontsize=MED, zorder=100, c=portfolio_colour, rotation=270)
         ax2.yaxis.set_label_coords(1.07, 0.5)
         ax2.tick_params(axis='y', labelcolor=portfolio_colour)
     else:
         ax2.get_yaxis().set_visible(False)
         ax1.spines['right'].set_color('none')
         ax2.spines['right'].set_color('none')
-
+        
     # Plot and potentially save
     plt.tight_layout()
     if filename:
         plt.savefig(f'{filename}.png', dpi=fig.dpi)
-        
+
     plt.show()
