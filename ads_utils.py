@@ -69,6 +69,6 @@ def plot(prices, positions=[], portfolio_values=[], title='', filename=''):
     plt.tight_layout()
     if filename:
         plt.savefig(f'{filename}.png', dpi=fig.dpi)
-
+        
     plt.show()
     # Test change
