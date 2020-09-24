@@ -23,6 +23,7 @@ def load_data(months, instrument='AMZN'):
 
 ############################################################################
 import matplotlib.pyplot as plt
+import numpy as np
 
 SMALL, MED, LARGE = 22, 28, 34
 LW = 1.5
