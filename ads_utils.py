@@ -12,8 +12,12 @@ def load_data(months, instrument='AMZN'):
     data = pd.DataFrame()
     
     for month in months:
-        # Sorry, only works for Windows atm, please update so it works for both and remove this comment
+        # Mac:
+        #monthly_data = pd.read_csv(os.getcwd() + f'/data/{instrument}/{month}.csv')
+        
+        # Windows:
         monthly_data = pd.read_csv(os.getcwd() + f'\data\\{instrument}\\{month}.csv')
+        
         # Assuming we only want to keep time, close and volume - removing open, high and low
         data = pd.concat([data, monthly_data[['time', 'close', 'volume']]], axis=0)
         
