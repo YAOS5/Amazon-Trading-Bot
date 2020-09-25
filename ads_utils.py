@@ -30,14 +30,19 @@ LW = 1.5
 plt.rc('xtick',labelsize=SMALL)
 plt.rc('ytick',labelsize=SMALL)
 
-def plot(prices, positions=[], portfolio_values=[], title='', filename=''):
+def plot(prices, positions=[], portfolio_values=[], title='', filename='', right_y_adjust=1.07, legend_loc='upper left'):
     ''' Output a graph of prices and optionally positions and portfolio values. Will save if filename provided 
     Inputs:
-        prices           - array of stock prices
-        positions        - array of positions in {-1, 0, 1}, equal in length to prices
-        portfolio_values - array of portfolio values, equal in length to prices
-        title            - string title
-        filename         - string filename, plot will be saved if a non-empty value is given
+        NECESSARY ARGUMENTS:
+        prices           - array of stock prices e.g. [1.02, 1.03, 1.01, 1.03, 1.05]
+        
+        OPTIONAL ARGUMENTS:
+        positions        - array of target positions in {-1, 0, 1}, equal in length to prices e.g. [0, 0, 1, 1, -1]
+        portfolio_values - array of portfolio values, equal in length to prices e.g. [100.00, 99.89, 99.93, 100.02, 100.10]
+        title            - string title e.g. 'Test Title'
+        filename         - string filename, plot will be saved if a non-empty value is given e.g. 'test graph'
+        right_y_adjust   - float for adjusting rightmost y axis if there is clipping
+        legend_loc       - string describing legend position according to matplotlib.pyplot legend locs
     '''
     portfolio_values = list(portfolio_values)
     positions = list(positions)
@@ -52,16 +57,25 @@ def plot(prices, positions=[], portfolio_values=[], title='', filename=''):
     
     # Plot positions
     if positions:
-        buy_indexes  = np.where(np.diff(positions) ==  1)[0]
-        sell_indexes = np.where(np.diff(positions) == -1)[0]
-        buys  = np.take(prices, buy_indexes, 0)
-        sells = np.take(prices, sell_indexes, 0)
+        buy_indexes   = np.where(np.diff(positions) ==  1)[0]
+        buy2_indexes  = np.where(np.diff(positions) ==  2)[0]
+        sell_indexes  = np.where(np.diff(positions) == -1)[0]
+        sell2_indexes = np.where(np.diff(positions) == -2)[0]
+        buys   = np.take(prices, buy_indexes, 0)
+        buys2  = np.take(prices, buy2_indexes, 0)
+        sells  = np.take(prices, sell_indexes, 0)
+        sells2 = np.take(prices, sell2_indexes, 0)
         
-        ax1.scatter(buy_indexes,  buys,  zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='^',
-                    label='Buy',  c=buy_colour)
-        ax1.scatter(sell_indexes, sells, zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='v',
-                    label='Sell', c=sell_colour)
-        ax1.legend(frameon=False, fontsize=SMALL, loc='upper left')
+        
+        ax1.scatter(buy2_indexes,  buys2,  zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='^',
+                    label='Buy x2',   c=buy_colour)
+        ax1.scatter(buy_indexes,   buys,   zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o',
+                    label='Buy',   c=buy_colour)
+        ax1.scatter(sell_indexes,  sells,  zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o',
+                    label='Sell',  c=sell_colour)
+        ax1.scatter(sell2_indexes, sells2, zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='v',
+                    label='Sell x2',  c=sell_colour)
+        ax1.legend(frameon=False, fontsize=SMALL, loc=legend_loc)
     
     # Plot prices and portfolio values
     ax1.plot(prices, lw=LW, c=prices_colour)
@@ -76,7 +90,7 @@ def plot(prices, positions=[], portfolio_values=[], title='', filename=''):
    
     if portfolio_values:
         ax2.set_ylabel('Portfolio Value ($)', fontsize=MED, zorder=100, c=portfolio_colour, rotation=270)
-        ax2.yaxis.set_label_coords(1.07, 0.5)
+        ax2.yaxis.set_label_coords(right_y_adjust, 0.5)
         ax2.tick_params(axis='y', labelcolor=portfolio_colour)
     else:
         ax2.get_yaxis().set_visible(False)
