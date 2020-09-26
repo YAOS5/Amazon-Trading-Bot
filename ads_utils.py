@@ -12,11 +12,12 @@ def load_data(months, instrument='AMZN'):
     data = pd.DataFrame()
     
     for month in months:
-        # Mac:
-        #monthly_data = pd.read_csv(os.getcwd() + f'/data/{instrument}/{month}.csv')
-        
-        # Windows:
-        monthly_data = pd.read_csv(os.getcwd() + f'\data\\{instrument}\\{month}.csv')
+        try:
+            # this should work regardless of os: tested on Mac - Grace
+            path_name = os.path.join(os.getcwd(), 'data', instrument, f'{month}.csv')
+            monthly_data = pd.read_csv(path_name)
+        except:
+            raise FileNotFoundError("Refer to generate_data script to obtain data.")
         
         # Assuming we only want to keep time, close and volume - removing open, high and low
         data = pd.concat([data, monthly_data[['time', 'close', 'volume']]], axis=0)
