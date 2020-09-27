@@ -13,7 +13,7 @@ def load_data(months, instrument='AMZN'):
     
     for month in months:
         try:
-            # this should work regardless of os: tested on Mac - Grace
+            # Create path regardless of os system
             path_name = os.path.join(os.getcwd(), 'data', instrument, f'{month}.csv')
             monthly_data = pd.read_csv(path_name)
         except:
@@ -35,14 +35,14 @@ LW = 1.5
 plt.rc('xtick',labelsize=SMALL)
 plt.rc('ytick',labelsize=SMALL)
 
-def plot(prices, positions=[], portfolio_values=[], title='', filename='', right_y_adjust=1.07, legend_loc='upper left'):
+def plot(prices, target_positions=[], portfolio_values=[], title='', filename='', right_y_adjust=1.07, legend_loc='upper left'):
     ''' Output a graph of prices and optionally positions and portfolio values. Will save if filename provided 
     Inputs:
         NECESSARY ARGUMENTS:
         prices           - array of stock prices e.g. [1.02, 1.03, 1.01, 1.03, 1.05]
         
         OPTIONAL ARGUMENTS:
-        positions        - array of target positions in {-1, 0, 1}, equal in length to prices e.g. [0, 0, 1, 1, -1]
+        target_positions - array of target positions in {-1, 0, 1}, equal in length to prices e.g. [0, 0, 1, 1, -1]
         portfolio_values - array of portfolio values, equal in length to prices e.g. [100.00, 99.89, 99.93, 100.02, 100.10]
         title            - string title e.g. 'Test Title'
         filename         - string filename, plot will be saved if a non-empty value is given e.g. 'test graph'
@@ -50,7 +50,7 @@ def plot(prices, positions=[], portfolio_values=[], title='', filename='', right
         legend_loc       - string describing legend position according to matplotlib.pyplot legend locs
     '''
     portfolio_values = list(portfolio_values)
-    positions = list(positions)
+    target_positions = list(target_positions)
     prices_colour, portfolio_colour, buy_colour, sell_colour = 'C0', 'C1', '#49E20E', '#FF0000'
     
     fig, ax1 = plt.subplots(figsize=(18, 9))
@@ -61,11 +61,11 @@ def plot(prices, positions=[], portfolio_values=[], title='', filename='', right
     ax2.spines['top'].set_color('none')
     
     # Plot positions
-    if positions:
-        buy_indexes   = np.where(np.diff(positions) ==  1)[0]
-        buy2_indexes  = np.where(np.diff(positions) ==  2)[0]
-        sell_indexes  = np.where(np.diff(positions) == -1)[0]
-        sell2_indexes = np.where(np.diff(positions) == -2)[0]
+    if target_positions:
+        buy_indexes   = np.where(np.diff(target_positions) ==  1)[0]
+        buy2_indexes  = np.where(np.diff(target_positions) ==  2)[0]
+        sell_indexes  = np.where(np.diff(target_positions) == -1)[0]
+        sell2_indexes = np.where(np.diff(target_positions) == -2)[0]
         buys   = np.take(prices, buy_indexes, 0)
         buys2  = np.take(prices, buy2_indexes, 0)
         sells  = np.take(prices, sell_indexes, 0)
