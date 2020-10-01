@@ -35,6 +35,8 @@ LW = 1.5
 plt.rc('xtick',labelsize=SMALL)
 plt.rc('ytick',labelsize=SMALL)
 
+SELL, HOLD, BUY = 0, 1, 2
+
 def plot(prices, target_positions=[], portfolio_values=[], title='', filename='', right_y_adjust=1.07, legend_loc='upper left'):
     ''' Output a graph of prices and optionally positions and portfolio values. Will save if filename provided 
     Inputs:
@@ -42,7 +44,7 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
         prices           - array of stock prices e.g. [1.02, 1.03, 1.01, 1.03, 1.05]
         
         OPTIONAL ARGUMENTS:
-        target_positions - array of target positions in {-1, 0, 1}, equal in length to prices e.g. [0, 0, 1, 1, -1]
+        target_positions - array of target positions in {0, 1, 2}, equal in length to prices e.g. [0, 0, 1, 1, -1]
         portfolio_values - array of portfolio values, equal in length to prices e.g. [100.00, 99.89, 99.93, 100.02, 100.10]
         title            - string title e.g. 'Test Title'
         filename         - string filename, plot will be saved if a non-empty value is given e.g. 'test graph'
@@ -71,6 +73,11 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
         sells  = np.take(prices, sell_indexes, 0)
         sells2 = np.take(prices, sell2_indexes, 0)
         
+        first = target_positions[0]
+        if first == BUY:
+            ax1.scatter([0], prices[0], zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o', alpha=0.7, c=buy_colour)
+        elif first == SELL:
+            ax1.scatter([0], prices[0], zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o', alpha=0.7, c=sell_colour)
         
         ax1.scatter(buy2_indexes,  buys2,  zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='^', alpha=0.7,
                     label='Buy x2',   c=buy_colour)
