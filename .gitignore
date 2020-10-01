@@ -6,3 +6,4 @@
 .ipynb_checkpoints/stable_baselines_test-checkpoint.ipynb
 .ipynb_checkpoints/Test-checkpoint.ipynb
 __pycache__/ads_utils.cpython-38.pyc
+wandb/*
