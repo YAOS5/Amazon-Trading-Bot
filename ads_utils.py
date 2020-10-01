@@ -72,13 +72,13 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
         sells2 = np.take(prices, sell2_indexes, 0)
         
         
-        ax1.scatter(buy2_indexes,  buys2,  zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='^',
+        ax1.scatter(buy2_indexes,  buys2,  zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='^', alpha=0.7,
                     label='Buy x2',   c=buy_colour)
-        ax1.scatter(buy_indexes,   buys,   zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o',
+        ax1.scatter(buy_indexes,   buys,   zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o', alpha=0.7,
                     label='Buy',   c=buy_colour)
-        ax1.scatter(sell_indexes,  sells,  zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o',
+        ax1.scatter(sell_indexes,  sells,  zorder=10, s=150, edgecolors='black', linewidths=0.5, marker='o', alpha=0.7,
                     label='Sell',  c=sell_colour)
-        ax1.scatter(sell2_indexes, sells2, zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='v',
+        ax1.scatter(sell2_indexes, sells2, zorder=10, s=200, edgecolors='black', linewidths=0.5, marker='v', alpha=0.7,
                     label='Sell x2',  c=sell_colour)
         ax1.legend(frameon=False, fontsize=SMALL, loc=legend_loc)
     
