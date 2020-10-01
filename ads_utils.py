@@ -150,16 +150,22 @@ class Environment(gym.Env):
         # Sell, Hold, Buy == 0, 1, 2 
         self.action_space = spaces.Discrete(3)
 
-        # Observation space has past_ticks prices up to and included current price, then balance and position
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape = (self.past_ticks+2, ))
+        # Observation space has past_ticks prices up to and included current price, then position
+        self.observation_space = spaces.Box(low=0, high=np.inf, shape = (self.past_ticks+1, ))
         
     def _next_observation(self):        
         '''Getting the next observation'''
         # Hi Grace - delete this when you read it, I added +1 here such that the frame included the current step - Cameron
-        frame = np.array(self.data[self.curr_step - self.past_ticks: self.curr_step + 1])
+        
         # Convert frame into returns
-        frame = np.diff(frame) / frame[:-1] * 100
-        obs = np.append(frame, [self.balance / self.initial_balance, self.position], axis=0)
+        # These two lines don't work
+        #frame = np.array(self.data[self.curr_step - self.past_ticks: self.curr_step + 1])###################################
+        #frame = np.diff(frame) / frame[:-1] * 100###################################
+        
+        # This line does for some reason
+        frame = np.array(self.data[self.curr_step - self.past_ticks + 1: self.curr_step + 1])
+        
+        obs = np.append(frame, [self.position], axis=0)
         return obs
 
     def _take_action(self, action):
