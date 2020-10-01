@@ -108,3 +108,134 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
         plt.savefig(f'{filename}.png', dpi=fig.dpi)
 
     plt.show()
+    
+    
+############################################################################
+import gym
+from gym import spaces
+from gym.utils import seeding
+
+INITIAL_BALANCE = 1_000_000
+PAST_DAYS = 5
+
+class Environment(gym.Env):  
+    # required for stable baselines 
+    metadata = {'render.modes': ['human']}
+    
+    SELL, HOLD, BUY = 0, 1, 2
+    PRICES, POSITION, BALANCE = 0, 1, 2
+    
+    def __init__(self, data, balance=INITIAL_BALANCE, transaction_cost=0.001, i=0, position=1, past_days=PAST_DAYS):
+        if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
+            raise ValueError('Only lists or arrays allowed')
+            
+        self.past_days = past_days
+        self.curr_step = self.past_days
+        self.initial_balance = self.balance = balance
+        
+        self.done = False
+        self.data = data
+        self.position = position
+        self.transaction_cost = transaction_cost
+        
+        self._seed()
+        
+        # Sell, Hold, Buy == 0, 1, 2 
+        self.action_space = spaces.Discrete(3)
+
+        # Observation space has past_days prices up to and included current price, then balance and position
+        self.observation_space = spaces.Box(low=0, high=np.inf, shape = (self.past_days+2, ))
+        
+    def _next_observation(self):        
+        '''Getting the next observation'''
+        # Hi Grace - delete this when you read it, I added +1 here such that the frame included the current step - Cameron
+        frame = np.array(self.data[self.curr_step - self.past_days + 1: self.curr_step + 1])
+        obs = np.append(frame, [self.balance, self.position], axis=0)
+        return obs
+
+    def _take_action(self, action):
+        curr_price = self.data[self.curr_step]
+        
+        # Perform position transition (transaction cost is a proportion of price)
+        self.balance -= curr_price * self.transaction_cost * abs(action - self.position)
+        
+        # A Buy
+        if (action == self.BUY and self.position == self.HOLD) or (action == self.HOLD and self.position == self.SELL):
+            self.balance -= curr_price
+        
+        # A Sell
+        elif (action == self.SELL and self.position == self.HOLD) or (action == self.HOLD and self.position == self.BUY):
+            self.balance += curr_price
+            
+        # Flip Position
+        elif abs(action - self.position) == 2:
+            self.balance -= 2 * (action-1) * curr_price
+        
+        # Update position and time
+        self.position = action
+        self.curr_step += 1
+        
+    def step(self, action):
+        ''' Updates environment with action taken, returns new state and reward from state transition '''
+        
+        prior_portfolio_value = self.get_portfolio_value()
+        
+        # Take action
+        self._take_action(action)
+        
+        # current portfolio value
+        self.portfolio_value = self.get_portfolio_value()
+        
+        # the change in portfolio value
+        reward = self.portfolio_value - prior_portfolio_value     
+        
+        # Are we done?
+        if self.balance <= 0:
+            self.done = True
+            reward = -1e6
+        if self.curr_step >= len(self.data) - 1:
+            self.done = True
+        
+        obs = self._next_observation()
+        
+        # required to return: observation, reward, done, info
+        return obs, reward, self.done, {}
+    
+    def get_portfolio_value(self):
+        ''' Returns current portfolio value '''
+        curr_price = self.data[self.curr_step]
+        
+        if self.position == self.BUY:
+            return self.balance + curr_price
+        
+        elif self.position == self.SELL:
+            return self.balance - curr_price
+        
+        return self.balance
+    
+    def reset(self):
+        '''Reset everything as if we just started (for a new episode)'''
+        self.position = self.HOLD
+        self.balance = self.initial_balance
+        self.net_worth = self.initial_balance
+        self.max_net_worth = self.initial_balance
+        self.portfolio_value = self.balance
+        self.done = False
+        self.curr_step = self.past_days
+        
+        # Must return first observation
+        return self._next_observation()   
+
+    def save_portfolio(self, mode='human'):
+        with open('output.csv', 'a') as file:
+            file.write(f'{self.curr_step},{self.portfolio_value},{self.balance}\n')
+        return
+    
+    
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+    
+    def __repr__(self):
+        return f'Balance: ${round(self.balance, 2)}, Price: ${round(self.data[self.curr_step], 2)}, ' +\
+               f'Position: {self.position}'
