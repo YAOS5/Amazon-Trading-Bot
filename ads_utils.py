@@ -217,11 +217,9 @@ class Environment(gym.Env):
         '''Reset everything as if we just started (for a new episode)'''
         self.position = self.HOLD
         self.balance = self.initial_balance
-        self.net_worth = self.initial_balance
-        self.max_net_worth = self.initial_balance
         self.portfolio_value = self.balance
         self.done = False
-        self.curr_step = self.past_days
+        self.curr_step = self.past_days - 1
         
         # Must return first observation
         return self._next_observation()   
