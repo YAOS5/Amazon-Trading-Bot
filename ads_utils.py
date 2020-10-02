@@ -64,10 +64,10 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
     
     # Plot positions
     if target_positions:
-        buy_indexes   = np.where(np.diff(target_positions) ==  1)[0]
-        buy2_indexes  = np.where(np.diff(target_positions) ==  2)[0]
-        sell_indexes  = np.where(np.diff(target_positions) == -1)[0]
-        sell2_indexes = np.where(np.diff(target_positions) == -2)[0]
+        buy_indexes   = np.where(np.diff(target_positions) ==  1)[0] + 1
+        buy2_indexes  = np.where(np.diff(target_positions) ==  2)[0] + 1
+        sell_indexes  = np.where(np.diff(target_positions) == -1)[0] + 1
+        sell2_indexes = np.where(np.diff(target_positions) == -2)[0] + 1
         buys   = np.take(prices, buy_indexes, 0)
         buys2  = np.take(prices, buy2_indexes, 0)
         sells  = np.take(prices, sell_indexes, 0)
