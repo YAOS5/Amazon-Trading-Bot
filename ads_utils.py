@@ -155,7 +155,7 @@ class Environment(gym.Env):
         
     def _next_observation(self):        
         '''Getting the next observation'''
-        # Hi Grace - delete this when you read it, I added +1 here such that the frame included the current step - Cameron
+        
         frame = np.array(self.data[self.curr_step - self.past_days + 1: self.curr_step + 1])
         obs = np.append(frame, [self.balance, self.position], axis=0)
         return obs
