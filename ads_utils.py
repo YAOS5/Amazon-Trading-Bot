@@ -158,12 +158,12 @@ class Environment(gym.Env):
         # Hi Grace - delete this when you read it, I added +1 here such that the frame included the current step - Cameron
         
         # Convert frame into returns
-        # These two lines don't work
-        #frame = np.array(self.data[self.curr_step - self.past_ticks: self.curr_step + 1])###################################
-        #frame = np.diff(frame) / frame[:-1] * 100###################################
+        # These two lines don't work for the DQN
+        frame = np.array(self.data[self.curr_step - self.past_ticks: self.curr_step + 1])###################################
+        frame = np.diff(frame) / frame[:-1] * 100
         
         # This line does for some reason
-        frame = np.array(self.data[self.curr_step - self.past_ticks + 1: self.curr_step + 1])
+        #frame = np.array(self.data[self.curr_step - self.past_ticks + 1: self.curr_step + 1])
         
         obs = np.append(frame, [self.position], axis=0)
         return obs
@@ -202,7 +202,9 @@ class Environment(gym.Env):
         self.portfolio_value = self.get_portfolio_value()
         
         # the change in portfolio value
-        reward = self.portfolio_value - prior_portfolio_value     
+        reward = self.portfolio_value - prior_portfolio_value   
+        # Percentange change from initial portfolio value
+        #reward = 100 * ((self.portfolio_value/self.initial_balance) - 1)  
         
         # Are we done?
         if self.balance <= 0:
