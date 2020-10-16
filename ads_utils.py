@@ -37,7 +37,35 @@ plt.rc('ytick',labelsize=SMALL)
 
 SELL, HOLD, BUY = 0, 1, 2
 
-def plot(prices, target_positions=[], portfolio_values=[], title='', filename='', right_y_adjust=1.07, legend_loc='upper left'):
+def continuous_actions(target):
+    ''' Input: Target actions (continuous space)
+    
+        Output: Returns the indexes where a BUY, HOLD or SELL occurs'''
+    buy_indexes = []
+    buy2_indexes = []
+    sell_indexes = []
+    sell2_indexes = []
+
+    for interval in range(1, len(target)):
+        diff = target[interval] - target[interval - 1]
+        sign = target[interval] * target[interval - 1]
+
+        if diff == 0:
+            continue
+
+        if diff > 0 and sign >= 0:
+            buy_indexes.append(interval)
+        elif diff > 0 and sign < 0:
+            buy2_indexes.append(interval)
+        elif diff < 0 and sign >= 0:
+            sell_indexes.append(interval)
+        elif diff < 0 and sign < 0:
+            sell2_indexes.append(interval)
+    
+    return buy_indexes, buy2_indexes, sell_indexes, sell2_indexes
+    
+def plot(prices, target_positions=[], portfolio_values=[], title='', filename='', right_y_adjust=1.07, legend_loc='upper left',
+        cont=False):
     ''' Output a graph of prices and optionally positions and portfolio values. Will save if filename provided 
     Inputs:
         NECESSARY ARGUMENTS:
@@ -50,6 +78,7 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
         filename         - string filename, plot will be saved if a non-empty value is given e.g. 'test graph'
         right_y_adjust   - float for adjusting rightmost y axis if there is clipping
         legend_loc       - string describing legend position according to matplotlib.pyplot legend locs
+        cont             - flag for continuous action space
     '''
     portfolio_values = list(portfolio_values)
     target_positions = list(target_positions)
@@ -64,10 +93,15 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
     
     # Plot positions
     if target_positions:
-        buy_indexes   = np.where(np.diff(target_positions) ==  1)[0] + 1
-        buy2_indexes  = np.where(np.diff(target_positions) ==  2)[0] + 1
-        sell_indexes  = np.where(np.diff(target_positions) == -1)[0] + 1
-        sell2_indexes = np.where(np.diff(target_positions) == -2)[0] + 1
+        
+        # if the agent has continuous action space
+        if cont:
+            buy_indexes, buy2_indexes, sell_indexes, sell2_indexes = continuous_actions(target_positions)
+        else:
+            buy_indexes   = np.where(np.diff(target_positions) ==  1)[0] + 1
+            buy2_indexes  = np.where(np.diff(target_positions) ==  2)[0] + 1
+            sell_indexes  = np.where(np.diff(target_positions) == -1)[0] + 1
+            sell2_indexes = np.where(np.diff(target_positions) == -2)[0] + 1
         buys   = np.take(prices, buy_indexes, 0)
         buys2  = np.take(prices, buy2_indexes, 0)
         sells  = np.take(prices, sell_indexes, 0)
