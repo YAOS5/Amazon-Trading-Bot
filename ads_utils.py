@@ -158,6 +158,7 @@ from gym.utils import seeding
 
 INITIAL_BALANCE = 10_000
 PAST_TICKS = 5
+MAX_CHANGE = 1000
 
 class Environment(gym.Env):  
     # required for stable baselines 
@@ -185,7 +186,7 @@ class Environment(gym.Env):
         self.action_space = spaces.Discrete(3)
 
         # Observation space has past_ticks prices up to and included current price, then position
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape = (self.past_ticks+1, ))
+        self.observation_space = spaces.Box(low=-MAX_CHANGE, high=MAX_CHANGE, shape = (self.past_ticks+1, ))
         
     def _next_observation(self):        
         '''Getting the next observation'''
