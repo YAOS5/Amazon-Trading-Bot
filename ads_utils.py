@@ -170,7 +170,10 @@ class Environment(gym.Env):
     def __init__(self, data, balance=INITIAL_BALANCE, transaction_cost=0.001, i=0, position=1, past_ticks=PAST_TICKS):
         if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
             raise ValueError('Only lists or arrays allowed')
-            
+        
+        self.logger = []
+        self.epoch_count = 0
+
         self.past_ticks = past_ticks
         self.curr_step = self.past_ticks+1
         self.initial_balance = self.balance = balance
@@ -179,7 +182,7 @@ class Environment(gym.Env):
         self.data = data
         self.position = position
         self.transaction_cost = transaction_cost
-        
+        self.cumulative_tc = 0
         self._seed()
         
         # Sell, Hold, Buy == 0, 1, 2 
@@ -212,14 +215,17 @@ class Environment(gym.Env):
         # A Buy
         if (action == self.BUY and self.position == self.HOLD) or (action == self.HOLD and self.position == self.SELL):
             self.balance -= curr_price
+            self.cumulative_tc += 1
         
         # A Sell
         elif (action == self.SELL and self.position == self.HOLD) or (action == self.HOLD and self.position == self.BUY):
             self.balance += curr_price
+            self.cumulative_tc += 1
             
         # Flip Position
         elif abs(action - self.position) == 2:
             self.balance -= 2 * (action-1) * curr_price
+            self.cumulative_tc += 1
         
         # Update position and time
         self.position = action
@@ -229,7 +235,7 @@ class Environment(gym.Env):
         ''' Updates environment with action taken, returns new state and reward from state transition '''
         
         prior_portfolio_value = self.get_portfolio_value()
-        
+
         # Take action
         self._take_action(action)
         
@@ -240,7 +246,8 @@ class Environment(gym.Env):
         reward = self.portfolio_value - prior_portfolio_value   
         # Percentange change from initial portfolio value
         #reward = 100 * ((self.portfolio_value/self.initial_balance) - 1)  
-        
+        self.logger.append([self.epoch_count, reward, self.portfolio_value, self.cumulative_tc, self.curr_step])
+
         # Are we done?
         if self.balance <= 0:
             self.done = True
@@ -251,7 +258,7 @@ class Environment(gym.Env):
         obs = self._next_observation()
         
         # required to return: observation, reward, done, info
-        return obs, reward, self.done, {}
+        return obs, reward, self.done, {"logs": self.logger}
     
     def get_portfolio_value(self):
         ''' Returns current portfolio value '''
@@ -272,7 +279,7 @@ class Environment(gym.Env):
         self.portfolio_value = self.balance
         self.done = False
         self.curr_step = np.random.randint(self.past_ticks, 2*len(self.data)//3) if rand_start else self.past_ticks+1
-        
+        self.epoch_count += 1
         # Must return first observation
         return self._next_observation()   
 
@@ -291,3 +298,41 @@ class Environment(gym.Env):
     def get_data(self):
         ''' Returns curr_price, balance, portfolio_value '''
         return self.data[self.curr_step], self.get_portfolio_value()
+
+############################################################################
+def write_to_logs(logs, filename="logs"):
+    # [reward, portfolio, curr_step]
+    path = f"logs/{filename}.csv"
+    logs = pd.DataFrame(logs) 
+    logs.to_csv(filename, header=["epoch", "reward", "portfolio", "cumulative_tc", "curr_step"], index=False)
+
+def moving_average(values, window=10):
+    """
+    Smooth values by doing a moving average
+    :param values: (numpy array)
+    :param window: (int)
+    :return: (numpy array)
+    """
+    weights = np.repeat(1.0, window) / window
+    return np.convolve(values, weights, 'valid')    
+    
+def plot_k_timesteps(logs="logs.csv", k=100, y_col="reward"):
+    ''' logs - the file where logs are stored
+        k    - log at each k timesteps 
+        y    - reward or portfolio'''
+    df = pd.read_csv(logs)
+    df.new = df.iloc[::k, :]
+    x = np.arange(0, len(df.new))
+    y = df.new[y_col]
+    y = moving_average(y, window=10)
+    
+    # Truncate x
+    x = x[len(x) - len(y):]
+
+    #plots reward at each k timestep
+    fig, ax = plt.subplots(figsize=(14,8))
+    plt.plot(x, y)
+    
+    ax.set_title(f"{y} at each timestep", fontsize=22)
+    ax.set_xlabel('timestep', fontsize=20)
+    ax.set_ylabel(y_col, fontsize=20)
