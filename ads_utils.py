@@ -280,6 +280,7 @@ class Environment(gym.Env):
         self.done = False
         self.curr_step = np.random.randint(self.past_ticks, 2*len(self.data)//3) if rand_start else self.past_ticks+1
         self.epoch_count += 1
+        self.cumulative_tc = 0
         # Must return first observation
         return self._next_observation()   
 
