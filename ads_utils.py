@@ -315,15 +315,16 @@ def moving_average(values, window=10):
     weights = np.repeat(1.0, window) / window
     return np.convolve(values, weights, 'valid')    
     
-def plot_k_timesteps(logs="logs.csv", k=100, y_col="reward"):
-    ''' logs - the file where logs are stored
-        k    - log at each k timesteps 
-        y    - reward or portfolio'''
+def plot_k_timesteps(logs, k=100, y_col="reward", window=100):
+    ''' logs    - the file where logs are stored
+        k       - log at each k timesteps 
+        y_col   - reward or portfolio
+        window  - window to average over'''
     df = pd.read_csv(logs)
     df.new = df.iloc[::k, :]
     x = np.arange(0, len(df.new))
     y = df.new[y_col]
-    y = moving_average(y, window=10)
+    y = moving_average(y, window=window)
     
     # Truncate x
     x = x[len(x) - len(y):]
@@ -332,6 +333,6 @@ def plot_k_timesteps(logs="logs.csv", k=100, y_col="reward"):
     fig, ax = plt.subplots(figsize=(14,8))
     plt.plot(x, y)
     
-    ax.set_title(f"{y} at each timestep", fontsize=22)
+    ax.set_title(f"{y_col} at each timestep", fontsize=22)
     ax.set_xlabel('timestep', fontsize=20)
     ax.set_ylabel(y_col, fontsize=20)
