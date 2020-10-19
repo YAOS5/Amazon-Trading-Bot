@@ -190,10 +190,9 @@ class Environment(gym.Env):
 
         # Observation space has past_ticks prices up to and included current price, then position
         self.observation_space = spaces.Box(low=-MAX_CHANGE, high=MAX_CHANGE, shape = (self.past_ticks+1, ))
-        
+
     def _next_observation(self):        
         '''Getting the next observation'''
-        # Hi Grace - delete this when you read it, I added +1 here such that the frame included the current step - Cameron
         
         # Convert frame into returns
         # These two lines don't work for the DQN
@@ -232,8 +231,7 @@ class Environment(gym.Env):
         self.curr_step += 1
         
     def step(self, action):
-        ''' Updates environment with action taken, returns new state and reward from state transition '''
-        
+        ''' Updates environment with action taken, returns new state and reward from state transition '''        
         prior_portfolio_value = self.get_portfolio_value()
 
         # Take action
@@ -256,7 +254,6 @@ class Environment(gym.Env):
             self.done = True
         
         obs = self._next_observation()
-        
         # required to return: observation, reward, done, info
         return obs, reward, self.done, {"logs": self.logger}
     
@@ -272,17 +269,19 @@ class Environment(gym.Env):
         
         return self.balance
     
-    def reset(self, rand_start=False):
+    def reset(self, rand_start=True):
         '''Reset everything as if we just started (for a new episode)'''
         self.position = self.HOLD
         self.balance = self.initial_balance
         self.portfolio_value = self.balance
         self.done = False
-        self.curr_step = np.random.randint(self.past_ticks, 2*len(self.data)//3) if rand_start else self.past_ticks+1
+        self.curr_step = np.random.randint(self.past_ticks, len(self.data)-10_000) if rand_start else self.past_ticks+1
+        
         self.epoch_count += 1
         self.cumulative_tc = 0
-        # Must return first observation
-        return self._next_observation()   
+        
+        obs = self._next_observation()  
+        return obs   
 
     def save_portfolio(self, mode='human'):
         with open('output.csv', 'a') as file:
@@ -301,11 +300,14 @@ class Environment(gym.Env):
         return self.data[self.curr_step], self.get_portfolio_value()
 
 ############################################################################
-def write_to_logs(logs, filename="logs"):
+import os
+def write_to_logs(logs, filename):
     # [reward, portfolio, curr_step]
+    if not os.path.exists(f'./logs'):
+        os.makedirs(f'./logs')
     path = f"logs/{filename}.csv"
     logs = pd.DataFrame(logs) 
-    logs.to_csv(filename, header=["epoch", "reward", "portfolio", "cumulative_tc", "curr_step"], index=False)
+    logs.to_csv(path, header=["epoch", "reward", "portfolio", "cumulative_tc", "curr_step"], index=False)
 
 def moving_average(values, window=10):
     """
