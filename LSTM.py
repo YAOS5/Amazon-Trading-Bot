@@ -15,21 +15,23 @@ import tensorflow.keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout,LSTM
 from tensorflow.keras.optimizers import Adam
+tf.random.set_seed(1)
 
 from ads_utils import load_data, plot, Environment
 
 INITIAL_BALANCE = 10_000
 N_TICKS = 60
-EPOCHS = 20
+EPOCHS = 50
 BATCH_SIZE = 72
+SELL, HOLD, BUY = 0, 1, 2
+TRANSACTION_COST = 0.001
 
 train_range = [i for i in range(24, 13-1, -1)]
 train_data = load_data(train_range)
 scaled_dataset = np.reshape(train_data['close'].values, (-1, 1))
 
-scaled_dataset = dataset
 train = scaled_dataset[:int(scaled_dataset.shape[0]*0.75)]
-valid = scaled_dataset[int(scaled_dataset.shape[0]*0.75)-60:]
+valid = scaled_dataset[int(scaled_dataset.shape[0]*0.75)-N_TICKS:]
 
 ############################################################################
 # Scale the dataset
@@ -92,15 +94,21 @@ prices = []
 for j in range(len(actual_stock_price)):
     prices.append(actual_stock_price[j][0])
 
+prev_action = HOLD
 for j in range(1,len(predicted_stock_price)):
     if predicted_stock_price[j] > actual_stock_price[j-1]:
         #go long
+        actions.append(BUY)
         balance += actual_stock_price[j] - actual_stock_price[j-1]
-        actions.append(2)
+        balance -= actual_stock_price[j-1] * transaction_cost * abs(BUY - prev_action)
+        
     else:
         #go short
+        actions.append(SELL)
         balance += actual_stock_price[j-1] - actual_stock_price[j]
-        actions.append(0)
+        balance -= actual_stock_price[j-1] * transaction_cost * abs(SELL - prev_action)
+        
+    prev_action = actions[-1]
     portfolio_values.append(float(balance))
 
 #plot(prices=prices, target_positions=actions, portfolio_values=portfolio_values, right_y_adjust=1.1)

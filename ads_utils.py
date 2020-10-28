@@ -84,7 +84,7 @@ def plot(prices, target_positions=[], portfolio_values=[], title='', filename=''
     target_positions = list(target_positions)
     prices_colour, portfolio_colour, buy_colour, sell_colour = 'C0', 'C1', '#49E20E', '#FF0000'
     
-    fig, ax1 = plt.subplots(figsize=(18, 9))
+    fig, ax1 = plt.subplots(figsize=(18, 6))
     ax2 = ax1.twinx()
     ax1.set_zorder(ax2.get_zorder()+1)
     ax1.patch.set_visible(False)
@@ -167,13 +167,16 @@ class Environment(gym.Env):
     SELL, HOLD, BUY = 0, 1, 2
     PRICES, POSITION, BALANCE = 0, 1, 2
     
-    def __init__(self, data, balance=INITIAL_BALANCE, transaction_cost=0.001, i=0, position=1, past_ticks=PAST_TICKS):
+    def __init__(self, data, balance=INITIAL_BALANCE, transaction_cost=0.001, i=0, position=1, past_ticks=PAST_TICKS,
+                train=False):
         if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
             raise ValueError('Only lists or arrays allowed')
         
         self.logger = []
         self.epoch_count = 0
-
+        self.step_count = 0
+        self.train = train
+        
         self.past_ticks = past_ticks
         self.curr_step = self.past_ticks+1
         self.initial_balance = self.balance = balance
@@ -245,12 +248,15 @@ class Environment(gym.Env):
         # Percentange change from initial portfolio value
         #reward = 100 * ((self.portfolio_value/self.initial_balance) - 1)  
         self.logger.append([self.epoch_count, reward, self.portfolio_value, self.cumulative_tc, self.curr_step])
-
+        self.step_count += 1
+        
         # Are we done?
         if self.balance <= 0:
             self.done = True
             reward = -1e6
         if self.curr_step >= len(self.data) - 2:
+            self.done = True
+        if self.train and self.step_count >= 10_000:
             self.done = True
         
         obs = self._next_observation()
@@ -279,6 +285,9 @@ class Environment(gym.Env):
         
         self.epoch_count += 1
         self.cumulative_tc = 0
+        
+        if self.train:
+            self.step_count=0
         
         obs = self._next_observation()  
         return obs   
