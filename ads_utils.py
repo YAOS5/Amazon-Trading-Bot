@@ -285,6 +285,7 @@ class Environment(gym.Env):
         
         self.epoch_count += 1
         self.cumulative_tc = 0
+        
         if self.train:
             self.step_count=0
         
