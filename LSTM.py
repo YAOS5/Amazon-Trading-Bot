@@ -1,118 +1,131 @@
 '''
-    Script trains LSTM on training data.
+    Script trains LSTM on 3-month window of test data, and predicts the stock prices of the following month
     Generates LSTM_portfolio_value.csv which records the portfolio values of LSTM trader on testing data.
 '''
-import pandas as pd
-import datetime as dt
-import matplotlib.pyplot as plt
-import numpy as np
-
+# with transaction cost included
 from sklearn.preprocessing import MinMaxScaler
-
-#requires tensorflow2
-import tensorflow as tf
-import tensorflow.keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout,LSTM
 from tensorflow.keras.optimizers import Adam
-tf.random.set_seed(1)
-
-from ads_utils import load_data, plot, Environment
+from sklearn.preprocessing import MinMaxScaler
 
 INITIAL_BALANCE = 10_000
-N_TICKS = 60
-EPOCHS = 50
-BATCH_SIZE = 72
 SELL, HOLD, BUY = 0, 1, 2
-TRANSACTION_COST = 0.001
+EPOCHS = 20
+BATCH_SIZE = 72
+transaction_cost = 0.001
 
-train_range = [i for i in range(24, 13-1, -1)]
-train_data = load_data(train_range)
-scaled_dataset = np.reshape(train_data['close'].values, (-1, 1))
+def create_model():
+    model = Sequential()
+    model.add(LSTM(units=100, input_shape=(x_train.shape[1],1), return_sequences=True))
+    model.add(LSTM(units=100)) 
+    model.add(Dropout(0.4))
+    model.add(Dense(1))
+    ADAM = Adam(0.00001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+    model.compile(loss='mean_squared_error', optimizer=ADAM) 
+    return model
 
-train = scaled_dataset[:int(scaled_dataset.shape[0]*0.75)]
-valid = scaled_dataset[int(scaled_dataset.shape[0]*0.75)-N_TICKS:]
+def take_action(action, curr_position, curr_price, balance):
+    '''
+        Calculates the change in balance due to change in position
+    '''
+    # Perform position transition (transaction cost is a proportion of price)
+    balance -= curr_price * transaction_cost * abs(action - curr_position)
 
-############################################################################
-# Scale the dataset
-sc = MinMaxScaler(feature_range = (0, 1))
-train2 = sc.fit_transform(train)
-valid2 = sc.transform(valid)
-x_train, y_train, x_test, y_test = [], [], [], []
+    # A Buy
+    if (action == BUY and curr_position == HOLD) or (action == HOLD and curr_position == SELL):
+        balance -= curr_price
 
-for j in range(N_TICKS, train2.shape[0]):
-    x_train.append(train2[j-N_TICKS:j, 0])
-    y_train.append(train2[j, 0])
+    # A Sell
+    elif (action == SELL and curr_position == HOLD) or (action == HOLD and curr_position == BUY):
+        balance += curr_price
+
+    # Flip Position
+    elif abs(action - curr_position) == 2:
+        balance -= 2 * (action-1) * curr_price
     
-for z in range(60, valid2.shape[0]):
-    x_test.append(valid2[z-N_TICKS:z, 0])
-    y_test.append(valid2[z, 0])
+    return balance
 
-x_train, y_train, x_test, y_test = np.array(x_train), np.array(y_train), np.array(x_test), np.array(y_test)
-x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
-############################################################################
-# Define the model
-model = Sequential()
-model.add(LSTM(units=100, input_shape=(x_train.shape[1], 1), return_sequences=True))
-model.add(LSTM(units=100))
-model.add(Dropout(0.4))
-model.add(Dense(1))
-ADAM = Adam(0.00001, beta_1=0.9, beta_2=0.999, amsgrad=False)
-model.compile(loss='mean_squared_error', optimizer=ADAM)
-
-history = model.fit(x_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, validation_data=(x_test, y_test), verbose=1,
-                    shuffle=False, workers=-1)
-
-############################################################################
-# Testing Data
-test_range = [i for i in range(6, 1-1, -1)]
-test_data = load_data(test_range)
-scaled_test_dataset = np.reshape(test_data['close'].values, (-1,1))
-test_set = sc.transform(scaled_test_dataset)
-
-x_test, y_test = [], []
-for z in range(60, test_set.shape[0]):
-    x_test.append(test_set[z-N_TICKS:z, 0])
-    y_test.append(test_set[z, 0])
-
-x_test, y_test = np.array(x_test), np.array(y_test)
-x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
-
-############################################################################
-# Transform the Testing Data 
-predicted_stock_price = sc.inverse_transform(model.predict(x_test))
-actual_stock_price = sc.inverse_transform(y_test.reshape((-1, 1)))
-
-# Obtain portfolio values
 actions = []
 portfolio_values = [INITIAL_BALANCE]
 balance = INITIAL_BALANCE
 prices = []
-
-for j in range(len(actual_stock_price)):
-    prices.append(actual_stock_price[j][0])
-
 prev_action = HOLD
-for j in range(1,len(predicted_stock_price)):
-    if predicted_stock_price[j] > actual_stock_price[j-1]:
-        #go long
-        actions.append(BUY)
-        balance += actual_stock_price[j] - actual_stock_price[j-1]
-        balance -= actual_stock_price[j-1] * transaction_cost * abs(BUY - prev_action)
-        
-    else:
-        #go short
-        actions.append(SELL)
-        balance += actual_stock_price[j-1] - actual_stock_price[j]
-        balance -= actual_stock_price[j-1] * transaction_cost * abs(SELL - prev_action)
-        
-    prev_action = actions[-1]
-    portfolio_values.append(float(balance))
+for i in range(6):
 
-#plot(prices=prices, target_positions=actions, portfolio_values=portfolio_values, right_y_adjust=1.1)
-############################################################################
+    data = load_data([i for i in range(6-i,6-i+4)])
+
+    dataset = np.reshape(data['close'].values,(-1,1))
+
+    scaled_dataset = dataset
+    train= scaled_dataset[:int(scaled_dataset.shape[0]*0.75)]
+    valid = scaled_dataset[int(scaled_dataset.shape[0]*0.75)-60:]
+
+    sc = MinMaxScaler(feature_range = (0, 1))
+    train2 = sc.fit_transform(train)
+    valid2 = sc.transform(valid)
+    x_train, y_train, x_test, y_test = [], [], [], []
+
+    for j in range(60, train2.shape[0]):
+        x_train.append(train2[j-60:j,0])
+        y_train.append(train2[j,0])
+
+    for z in range(60, valid2.shape[0]):
+        x_test.append(valid2[z-60:z,0])
+        y_test.append(valid2[z,0])
+
+    x_train, y_train, x_test, y_test = np.array(x_train), np.array(y_train), np.array(x_test), np.array(y_test)
+    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1],1))
+    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1],1))
+
+    model = create_model()
+    history = model.fit(x_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, validation_data=(x_test, y_test),
+                        verbose=1, shuffle=False, workers=-1)
+    #model = tf.keras.models.load_model(f'./extras/LSTM_checkpoints/{i}')
+    #model.save(f"./extras/LSTM_checkpoints/{i})
+
+    predicted_stock_price = sc.inverse_transform(model.predict(x_test))
+    actual_stock_price = sc.inverse_transform(y_test.reshape((-1, 1)))
+
+    for j in range(len(actual_stock_price)):
+        prices.append(actual_stock_price[j][0])
+
+    for j in range(1, len(predicted_stock_price)):
+        buy_cost = actual_stock_price[j-1] * transaction_cost * abs(BUY - prev_action)
+        sell_cost = actual_stock_price[j-1] * transaction_cost * abs(SELL - prev_action)
+
+        # BUY
+        if predicted_stock_price[j] - actual_stock_price[j-1] > buy_cost:
+            action = BUY
+
+        # SELL
+        elif actual_stock_price[j-1] - predicted_stock_price[j] > sell_cost:
+            action = SELL
+
+        # HOLD
+        else:
+            action = prev_action
+
+        actions.append(action)
+
+        # take action
+        balance = take_action(action, prev_action, actual_stock_price[j-1], balance)
+
+        # reward
+        if action == BUY:
+            portfolio_value = balance + actual_stock_price[j]
+        elif action == SELL:
+            portfolio_value = balance - actual_stock_price[j]
+        else:
+            portfolio_value = balance
+
+        portfolio_values.append(float(portfolio_value))
+        prev_action = action
+
+# plot(prices=prices,target_positions = actions,portfolio_values = portfolio_values)
 
 df = pd.DataFrame(portfolio_values)
-df.to_csv("LSTM_portfolio_values", header=None)
+# df.to_csv("LSTM_portfolio_values", header=None)
+
+    
